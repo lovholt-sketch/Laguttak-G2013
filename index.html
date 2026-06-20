@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Korsvoll IL</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+
 <style>
 :root{--ct:#1a1918;--cs:#6b6965;--bg:#ffffff;--bg2:#f5f4f0;--bo:#e5e3dc;--bo2:#d1cec4;--ff:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--r:10px;--r2:14px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -119,8 +119,8 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 </style>
 </head>
 <body>
-<h1><i class="ti ti-ball-handball"></i>Korsvoll IL
-  <span class="sync syncing" id="sync-ind"><i class="ti ti-refresh"></i> Kobler til...</span>
+<h1>⚽Korsvoll IL
+  <span class="sync syncing" id="sync-ind">↻ Kobler til...</span>
 </h1>
 <div class="nav">
   <button class="nav-btn active" onclick="showPage('kalender',this)">Kalender</button>
@@ -132,10 +132,10 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 
 <div id="page-kalender" class="page active">
   <div class="week-nav">
-    <button class="btn-icon" onclick="byttMåned(-1)"><i class="ti ti-chevron-left"></i></button>
+    <button class="btn-icon" onclick="byttMåned(-1)">◀</button>
     <span class="week-label" id="mnd-label"></span>
-    <button class="btn-icon" onclick="byttMåned(1)"><i class="ti ti-chevron-right"></i></button>
-    <button class="btn btn-sm" onclick="visNyKamp()"><i class="ti ti-plus"></i> Ny kamp</button>
+    <button class="btn-icon" onclick="byttMåned(1)">▶</button>
+    <button class="btn btn-sm" onclick="visNyKamp()">+ Ny kamp</button>
   </div>
   <div id="ny-kamp-panel"></div>
   <div id="kalender-innhold"></div>
@@ -170,7 +170,7 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 <div id="page-spillere" class="page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
     <span style="font-size:13px;color:var(--cs)" id="spiller-antall"></span>
-    <button class="btn btn-primary btn-sm" onclick="leggTilSpiller()"><i class="ti ti-plus"></i> Legg til</button>
+    <button class="btn btn-primary btn-sm" onclick="leggTilSpiller()">+ Legg til</button>
   </div>
   <div id="spillere-innhold" class="spillere-grid"></div>
 </div>
@@ -185,32 +185,26 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
   <div id="tilg-innhold"></div>
 </div>
 
-<script type="module">
-import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getDatabase,ref,set,onValue}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-const app=initializeApp({databaseURL:'https://laguttak-g2013-default-rtdb.europe-west1.firebasedatabase.app'});
-const db=getDatabase(app);
+<script>
+
+
+
+
 const LAGNAVN=['K1','K2','K3'],LAGCLS=['k1','k2','k3'],NB=['badge-purple','badge-teal','badge-brown'];
 const MND=['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
 const LAGBG=['#EEEDFE','#E1F5EE','#FAEEDA'],LAGTXT=['#3C3489','#085041','#633806'];
 let kamper=[],players=[],nextId=100,nextPId=100;
 let visÅr=2026,visMnd=8,tilgLag=0,aktivKampId=null,matriseFil=-1,sortKol='navn',sortAsc=true;
 
-function si(s){const el=document.getElementById('sync-ind');if(!el)return;el.className='sync '+s;el.innerHTML=s==='synced'?'<i class="ti ti-check"></i> Synkronisert':s==='syncing'?'<i class="ti ti-refresh"></i> Synkroniserer...':'<i class="ti ti-wifi-off"></i> Frakoblet';}
+function si(s){const el=document.getElementById('sync-ind');if(!el)return;el.className='sync '+s;el.innerHTML=s==='synced'?'✓ Synkronisert':s==='syncing'?'↻ Synkroniserer...':'✕ Frakoblet';}
 
-onValue(ref(db,'data'),(snap)=>{
-  const d=snap.val();
-  if(d&&d.kamper&&d.players){
-    kamper=Array.isArray(d.kamper)?d.kamper:Object.values(d.kamper);
-    players=Array.isArray(d.players)?d.players:Object.values(d.players);
-    kamper=kamper.map(k=>({...k,spillere:k.spillere?(Array.isArray(k.spillere)?k.spillere:Object.values(k.spillere)):[]}));
-    nextId=Math.max(100,...kamper.map(k=>k.id))+1;
-    nextPId=Math.max(100,...players.map(p=>p.id))+1;
-  }
-  si('synced');refresh();
-},(e)=>{console.error(e);si('offline');});
+try{
+  const stored=localStorage.getItem('kil_lokal');
+  if(stored){const d=JSON.parse(stored);kamper=d.kamper||[];players=d.players||[];nextId=Math.max(100,...kamper.map(k=>k.id))+1;nextPId=Math.max(100,...players.map(p=>p.id))+1;}
+}catch(e){}
+si('synced');refresh();
 
-function fbSave(){si('syncing');set(ref(db,'data'),{kamper,players}).then(()=>si('synced')).catch(()=>si('offline'));}
+function fbSave(){try{localStorage.setItem('kil_lokal',JSON.stringify({kamper,players}));}catch(e){}si('synced');}
 
 function refresh(){
   const id=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -291,8 +285,8 @@ function renderKalender(){
         // På desktop: ikonknapper i toppen som før
         const topBtns=mob?'':
           `<div class="lag-top-btns">
-            <button class="btn-icon btn-sm" onclick="event.stopPropagation();åpnePanel(${k.id},'${dato}')" style="font-size:12px;min-width:30px;height:30px"><i class="ti ti-edit"></i></button>
-            <button class="btn-icon btn-sm" onclick="event.stopPropagation();slettKamp(${k.id})" style="font-size:12px;min-width:30px;height:30px;color:#A32D2D"><i class="ti ti-trash"></i></button>
+            <button class="btn-icon btn-sm" onclick="event.stopPropagation();åpnePanel(${k.id},'${dato}')" style="font-size:12px;min-width:30px;height:30px">✎</button>
+            <button class="btn-icon btn-sm" onclick="event.stopPropagation();slettKamp(${k.id})" style="font-size:12px;min-width:30px;height:30px;color:#A32D2D">🗑</button>
           </div>`;
         const cardClick=mob?`onclick="åpnePanel(${k.id},'${dato}')"`:
           `onclick="åpnePanel(${k.id},'${dato}')"`;
@@ -326,13 +320,13 @@ function panelHTML(kid){
         <div class="panel-title">${LAGNAVN[lag]} – ${k.mot}</div>
         <div class="panel-meta">${fmtDato(k.dato)} · ${k.hb} · ${valgte.size} valgt</div>
       </div>
-      <button class="btn-icon" onclick="lukkPanel()"><i class="ti ti-x"></i></button>
+      <button class="btn-icon" onclick="lukkPanel()">✕</button>
     </div>
     <div class="panel-controls">
       <div class="time-grp"><span class="time-label">Start</span><input type="time" value="${k.start||''}" id="ps" onchange="oppdaterTid(${kid})" style="width:105px"></div>
       <div class="time-grp"><span class="time-label">Slutt</span><input type="time" value="${k.slutt||''}" id="psl" onchange="oppdaterTid(${kid})" style="width:105px"></div>
-      ${valgte.size>0?`<button class="btn btn-sm btn-danger" onclick="fjernAlle(${kid})"><i class="ti ti-x"></i> Fjern alle</button>`:''}
-      ${mob?`<button class="btn btn-sm btn-danger" onclick="slettKamp(${kid})" style="margin-left:auto"><i class="ti ti-trash"></i> Slett kamp</button>`:''}
+      ${valgte.size>0?`<button class="btn btn-sm btn-danger" onclick="fjernAlle(${kid})">✕ Fjern alle</button>`:''}
+      ${mob?`<button class="btn btn-sm btn-danger" onclick="slettKamp(${kid})" style="margin-left:auto">🗑 Slett kamp</button>`:''}
     </div>
     ${v.map(x=>`<div class="alert alert-${x.t==='ok'?'ok':x.t==='warn'?'warn':'err'}">${x.m}</div>`).join('')}
     <div class="player-grid">${sorted.map(p=>{
@@ -368,7 +362,7 @@ window.slettKamp=function(id){if(!confirm('Slett denne kampen?'))return;if(aktiv
 window.visNyKamp=function(){
   aktivKampId=null;
   document.getElementById('ny-kamp-panel').innerHTML=`<div class="panel" style="margin-bottom:1rem">
-    <div class="panel-header"><div class="panel-title">Ny kamp</div><button class="btn-icon" onclick="lukkNyKamp()"><i class="ti ti-x"></i></button></div>
+    <div class="panel-header"><div class="panel-title">Ny kamp</div><button class="btn-icon" onclick="lukkNyKamp()">✕</button></div>
     <div class="input-row"><label>Lag</label><select id="nk-lag"><option value="0">K1</option><option value="1">K2</option><option value="2">K3</option></select></div>
     <div class="input-row"><label>Motstander</label><input type="text" id="nk-mot" placeholder="Motstander" style="flex:1;font-size:14px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
     <div class="input-row"><label>Dato</label><input type="date" id="nk-dato"></div>
@@ -437,7 +431,7 @@ function renderSpillere(){
   document.getElementById('spiller-antall').textContent=`${players.length} spillere`;
   document.getElementById('spillere-innhold').innerHTML=sorted.map(p=>{
     const e=eN(p.id,today),k1=hK1(p.id,today);
-    return`<div class="spiller-row"><span>${p.navn}</span><span style="display:flex;gap:5px;align-items:center">${e!==null?`<span class="badge ${NB[e]}">${LAGNAVN[e]}</span>`:'<span class="badge badge-gray">fri</span>'}${k1?'<span class="badge badge-red">K1</span>':''}<button class="btn-icon" onclick="endreNavn(${p.id})"><i class="ti ti-edit"></i></button><button class="btn-icon" onclick="slettSpiller(${p.id})" style="color:#A32D2D"><i class="ti ti-trash"></i></button></span></div>`;
+    return`<div class="spiller-row"><span>${p.navn}</span><span style="display:flex;gap:5px;align-items:center">${e!==null?`<span class="badge ${NB[e]}">${LAGNAVN[e]}</span>`:'<span class="badge badge-gray">fri</span>'}${k1?'<span class="badge badge-red">K1</span>':''}<button class="btn-icon" onclick="endreNavn(${p.id})">✎</button><button class="btn-icon" onclick="slettSpiller(${p.id})" style="color:#A32D2D">🗑</button></span></div>`;
   }).join('')+`</div>`;
 }
 window.endreNavn=function(id){const p=players.find(x=>x.id===id);if(!p)return;const n=prompt('Nytt navn:',p.navn);if(n?.trim()){p.navn=n.trim();fbSave();renderSpillere();}};
