@@ -185,11 +185,11 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
   <div id="tilg-innhold"></div>
 </div>
 
-<script>
-
-
-
-
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getDatabase,ref,set,onValue}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+const app=initializeApp({databaseURL:'https://laguttak-g2013-default-rtdb.europe-west1.firebasedatabase.app'});
+const db=getDatabase(app);
 const LAGNAVN=['K1','K2','K3'],LAGCLS=['k1','k2','k3'],NB=['badge-purple','badge-teal','badge-brown'];
 const MND=['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
 const LAGBG=['#EEEDFE','#E1F5EE','#FAEEDA'],LAGTXT=['#3C3489','#085041','#633806'];
@@ -198,13 +198,19 @@ let visÅr=2026,visMnd=8,tilgLag=0,aktivKampId=null,matriseFil=-1,sortKol='navn'
 
 function si(s){const el=document.getElementById('sync-ind');if(!el)return;el.className='sync '+s;el.innerHTML=s==='synced'?'✓ Synkronisert':s==='syncing'?'↻ Synkroniserer...':'✕ Frakoblet';}
 
-try{
-  const stored=localStorage.getItem('kil_lokal');
-  if(stored){const d=JSON.parse(stored);kamper=d.kamper||[];players=d.players||[];nextId=Math.max(100,...kamper.map(k=>k.id))+1;nextPId=Math.max(100,...players.map(p=>p.id))+1;}
-}catch(e){}
-si('synced');refresh();
+onValue(ref(db,'data'),(snap)=>{
+  const d=snap.val();
+  if(d&&d.kamper&&d.players){
+    kamper=Array.isArray(d.kamper)?d.kamper:Object.values(d.kamper);
+    players=Array.isArray(d.players)?d.players:Object.values(d.players);
+    kamper=kamper.map(k=>({...k,spillere:k.spillere?(Array.isArray(k.spillere)?k.spillere:Object.values(k.spillere)):[]}));
+    nextId=Math.max(100,...kamper.map(k=>k.id))+1;
+    nextPId=Math.max(100,...players.map(p=>p.id))+1;
+  }
+  si('synced');refresh();
+},(e)=>{console.error(e);si('offline');});
 
-function fbSave(){try{localStorage.setItem('kil_lokal',JSON.stringify({kamper,players}));}catch(e){}si('synced');}
+function fbSave(){si('syncing');set(ref(db,'data'),{kamper,players}).then(()=>si('synced')).catch(()=>si('offline'));}
 
 function refresh(){
   const id=document.querySelector('.page.active')?.id?.replace('page-','');
