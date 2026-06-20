@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Korsvoll IL – Lagstyringsapp</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.19.0/iconfont/tabler-icons.min.css">
+<style>
+:root{--color-text-primary:#1a1918;--color-text-secondary:#6b6965;--color-background-primary:#ffffff;--color-background-secondary:#f5f4f0;--color-border-tertiary:#e5e3dc;--color-border-secondary:#d1cec4;--font-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--border-radius-md:8px;--border-radius-lg:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary);background:#fafaf8;padding:0.75rem;max-width:900px;margin:0 auto}
+h1{font-size:16px;font-weight:600;margin-bottom:1rem}
+.sync-indicator{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:99px;margin-left:8px;vertical-align:middle}
+.sync-indicator.syncing{background:#E6F1FB;color:#185FA5}
+.sync-indicator.synced{background:#EAF3DE;color:#27500A}
+.sync-indicator.offline{background:#FCEBEB;color:#791F1F}
+.nav{display:flex;gap:4px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:1.5rem;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.nav-btn{padding:8px 12px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font-sans);white-space:nowrap}
+.nav-btn.active{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.page{display:none}.page.active{display:block}
+.week-nav{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem}
+.week-label{font-size:15px;font-weight:500;flex:1}
+.btn{padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;font-size:13px;cursor:pointer;color:var(--color-text-primary);font-family:var(--font-sans)}
+.btn:hover{background:var(--color-background-secondary)}
+.btn-primary{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.btn-danger{color:#A32D2D;border-color:#F09595}.btn-danger:hover{background:#FCEBEB}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-icon{padding:6px 8px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);cursor:pointer;color:var(--color-text-secondary);font-family:var(--font-sans);font-size:15px}
+.btn-icon:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.day-block{margin-bottom:0.5rem}
+.day-label{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.lag-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.lag-col{border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);overflow:hidden}
+.lag-col.tom{background:var(--color-background-secondary);border-style:dashed;opacity:.4}
+.lag-col.aktiv{border-color:#378ADD}
+.lag-header{padding:8px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--color-border-tertiary)}
+.lag-name{font-size:12px;font-weight:600}
+.lag-name.k1{color:#3C3489}.lag-name.k2{color:#085041}.lag-name.k3{color:#633806}
+.lag-mot{font-size:10px;color:var(--color-text-secondary);margin-top:1px}
+.lag-body{padding:8px;min-height:32px}
+.spiller-pill{font-size:11px;padding:3px 7px;border-radius:99px;margin:2px 2px 2px 0;display:inline-block}
+.spiller-pill.k1{background:#EEEDFE;color:#3C3489}
+.spiller-pill.k2{background:#E1F5EE;color:#085041}
+.spiller-pill.k3{background:#FAEEDA;color:#633806}
+.spiller-pill.fri{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.ingen{font-size:11px;color:var(--color-text-secondary);font-style:italic}
+.badge{font-size:10px;padding:2px 6px;border-radius:99px;font-weight:500;display:inline-block}
+.badge-gray{background:#F1EFE8;color:#5F5E5A}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-purple{background:#EEEDFE;color:#3C3489}
+.badge-teal{background:#E1F5EE;color:#085041}
+.badge-brown{background:#FAEEDA;color:#633806}
+.badge-green{background:#EAF3DE;color:#3B6D11}
+.badge-amber{background:#FAEEDA;color:#633806}
+.panel{background:var(--color-background-primary);border:0.5px solid #378ADD;border-radius:var(--border-radius-lg);padding:1rem;margin-top:8px;margin-bottom:1rem}
+.panel-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.panel-title{font-size:15px;font-weight:500}
+.player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:5px}
+.player-chip{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 9px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);cursor:pointer;font-size:12px;user-select:none;-webkit-tap-highlight-color:transparent}
+.player-chip:active{background:var(--color-background-secondary)}
+.player-chip.selected{background:#E6F1FB;border-color:#378ADD;color:#0C447C}
+.player-chip.locked{opacity:.4;cursor:not-allowed;background:var(--color-background-secondary)}
+.player-chip.quarantine{background:#FCEBEB;border-color:#E24B4A;color:#791F1F;cursor:not-allowed}
+.player-chip.selected.quarantine{background:#FCEBEB;border-color:#E24B4A;color:#791F1F;cursor:pointer}
+.player-chip.pause{background:#FAEEDA;border-color:#EF9F27;color:#633806;cursor:not-allowed}
+.alert{padding:8px 12px;border-radius:var(--border-radius-md);font-size:12px;margin-bottom:8px}
+.alert-err{background:#FCEBEB;color:#791F1F}
+.alert-ok{background:#EAF3DE;color:#27500A}
+.alert-warn{background:#FAEEDA;color:#633806}
+.input-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.input-row label{font-size:12px;color:var(--color-text-secondary);min-width:70px}
+input,select{font-size:14px;padding:7px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans);-webkit-appearance:none}
+.spillere-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px}
+.spiller-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);font-size:13px;background:var(--color-background-primary)}
+.stat-table{width:100%;border-collapse:collapse;font-size:13px}
+.stat-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer}
+.stat-table th.num{text-align:center}
+.stat-table td{padding:8px 10px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.stat-table tr:last-child td{border-bottom:none}
+.stat-table td.num{text-align:center}
+.stat-num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:99px;font-size:12px;font-weight:500}
+.stat-num.k1{background:#EEEDFE;color:#3C3489}.stat-num.k2{background:#E1F5EE;color:#085041}.stat-num.k3{background:#FAEEDA;color:#633806}.stat-num.zero{background:var(--color-background-secondary);color:var(--color-text-secondary);font-weight:400}
+.matrise-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.matrise-table{border-collapse:collapse;font-size:11px;min-width:100%}
+.matrise-table th{padding:3px 4px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);font-weight:500;white-space:nowrap;position:sticky;top:0;z-index:2;vertical-align:bottom}
+.matrise-table th.spiller-col{position:sticky;left:0;z-index:3;min-width:120px;text-align:left;padding:6px 8px}
+.matrise-table td{padding:3px 4px;border:0.5px solid var(--color-border-tertiary);text-align:center;vertical-align:middle}
+.matrise-table td.spiller-col{position:sticky;left:0;background:var(--color-background-primary);z-index:1;text-align:left;padding:4px 8px;font-size:12px;white-space:nowrap}
+.matrise-table tr.sum-row td{background:var(--color-background-secondary);font-weight:500;border-bottom:1.5px solid var(--color-border-secondary)}
+.matrise-table tr.sum-row td.spiller-col{background:var(--color-background-secondary)}
+.kamp-hdr{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 4px}
+.kamp-hdr-lag{font-size:10px;font-weight:600}
+.kamp-hdr-lag.k1{color:#3C3489}.kamp-hdr-lag.k2{color:#085041}.kamp-hdr-lag.k3{color:#633806}
+.kamp-hdr-mot{font-size:9px;color:var(--color-text-secondary);max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kamp-hdr-dato{font-size:9px;color:var(--color-text-secondary)}
+.celle{width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin:auto;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;-webkit-tap-highlight-color:transparent}
+.celle.k1-ja{background:#EEEDFE;color:#3C3489}
+.celle.k2-ja{background:#E1F5EE;color:#085041}
+.celle.k3-ja{background:#FAEEDA;color:#633806}
+.celle.blokkert{opacity:.2;cursor:not-allowed;font-size:10px}
+.celle.karantene{background:#FCEBEB;cursor:not-allowed;font-size:10px;color:#A32D2D}
+.sum-celle{display:inline-flex;align-items:center;justify-content:center;width:26px;height:20px;border-radius:4px;font-size:11px;font-weight:600}
+.sum-celle.k1{background:#EEEDFE;color:#3C3489}.sum-celle.k2{background:#E1F5EE;color:#085041}.sum-celle.k3{background:#FAEEDA;color:#633806}.sum-celle.zero{color:var(--color-text-secondary);font-weight:400}
+.celle-filter{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+@media(max-width:480px){.lag-grid{gap:5px}.player-grid{grid-template-columns:1fr 1fr}.panel{padding:0.75rem}}
+</style>
+</head>
+<body>
+
+<h1><i class="ti ti-ball-handball" style="margin-right:6px"></i>Korsvoll IL
+  <span class="sync-indicator syncing" id="sync-ind"><i class="ti ti-refresh"></i> Kobler til...</span>
+</h1>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('kalender',this)"><i class="ti ti-calendar"></i> Kalender</button>
+  <button class="nav-btn" onclick="showPage('matrise',this)"><i class="ti ti-layout-grid"></i> Oversikt</button>
+  <button class="nav-btn" onclick="showPage('statistikk',this)"><i class="ti ti-chart-bar"></i> Statistikk</button>
+  <button class="nav-btn" onclick="showPage('spillere',this)"><i class="ti ti-users"></i> Spillere</button>
+  <button class="nav-btn" onclick="showPage('tilgang',this)"><i class="ti ti-shield-check"></i> Tilgjengelighet</button>
+</div>
+
+<div id="page-kalender" class="page active">
+  <div class="week-nav">
+    <button class="btn-icon" onclick="byttMåned(-1)"><i class="ti ti-chevron-left"></i></button>
+    <span class="week-label" id="mnd-label"></span>
+    <button class="btn-icon" onclick="byttMåned(1)"><i class="ti ti-chevron-right"></i></button>
+    <button class="btn btn-sm" onclick="visNyKamp()"><i class="ti ti-plus"></i> Ny kamp</button>
+  </div>
+  <div id="ny-kamp-panel"></div>
+  <div id="kalender-innhold"></div>
+</div>
+
+<div id="page-matrise" class="page">
+  <div class="celle-filter">
+    <span style="font-size:13px;font-weight:500">Kampmatrise</span>
+    <span style="font-size:12px;color:var(--color-text-secondary);margin-left:4px" id="matrise-info"></span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-sm" id="mfil-0" onclick="setMatriseFil(0)">K1</button>
+      <button class="btn btn-sm" id="mfil-1" onclick="setMatriseFil(1)">K2</button>
+      <button class="btn btn-sm" id="mfil-2" onclick="setMatriseFil(2)">K3</button>
+      <button class="btn btn-sm btn-primary" id="mfil-all" onclick="setMatriseFil(-1)">Alle</button>
+    </div>
+  </div>
+  <div class="matrise-wrap"><div id="matrise-innhold"></div></div>
+</div>
+
+<div id="page-statistikk" class="page">
+  <div style="margin-bottom:1rem"><span style="font-size:13px;color:var(--color-text-secondary)" id="stat-info"></span></div>
+  <table class="stat-table">
+    <thead><tr>
+      <th onclick="setSortKol('navn')">Spiller <span id="sort-navn" class="badge badge-gray">↕</span></th>
+      <th class="num" onclick="setSortKol('k1')"><span style="color:#3C3489">K1</span> <span id="sort-k1" class="badge badge-gray">↕</span></th>
+      <th class="num" onclick="setSortKol('k2')"><span style="color:#085041">K2</span> <span id="sort-k2" class="badge badge-gray">↕</span></th>
+      <th class="num" onclick="setSortKol('k3')"><span style="color:#633806">K3</span> <span id="sort-k3" class="badge badge-gray">↕</span></th>
+      <th class="num" onclick="setSortKol('tot')">Tot <span id="sort-tot" class="badge badge-gray">↕</span></th>
+      <th>Nivå</th>
+    </tr></thead>
+    <tbody id="stat-tbody"></tbody>
+  </table>
+</div>
+
+<div id="page-spillere" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+    <span style="font-size:13px;color:var(--color-text-secondary)" id="spiller-antall"></span>
+    <button class="btn btn-primary btn-sm" onclick="leggTilSpiller()"><i class="ti ti-plus"></i> Legg til</button>
+  </div>
+  <div id="spillere-innhold" class="spillere-grid"></div>
+</div>
+
+<div id="page-tilgang" class="page">
+  <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+    <button class="btn btn-sm btn-primary" id="tbtn-0" onclick="setTilgLag(0)">K1</button>
+    <button class="btn btn-sm" id="tbtn-1" onclick="setTilgLag(1)">K2</button>
+    <button class="btn btn-sm" id="tbtn-2" onclick="setTilgLag(2)">K3</button>
+    <input type="date" id="tilg-dato" style="font-size:12px;padding:5px 8px">
+    <input type="time" id="tilg-tid" style="font-size:12px;padding:5px 8px" value="12:00" onchange="renderTilgang()">
+  </div>
+  <div id="tilg-innhold"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  databaseURL: 'https://laguttak-g2013-default-rtdb.europe-west1.firebasedatabase.app'
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const LAGNAVN=['K1','K2','K3'];
+const LAGCLS=['k1','k2','k3'];
+const NIVÅ_BADGE=['badge-purple','badge-teal','badge-brown'];
+const MND=['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+const LAGFARGE_BG=['#EEEDFE','#E1F5EE','#FAEEDA'];
+const LAGFARGE_TXT=['#3C3489','#085041','#633806'];
+
+const INIT_KAMPER=[
+  {id:1,lag:0,mot:'Ullern',dato:'2026-09-05',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:2,lag:0,mot:'Hasle-Løren',dato:'2026-09-12',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:3,lag:0,mot:'Asker/Gui/Jardar',dato:'2026-09-19',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:4,lag:0,mot:'Nordstrand',dato:'2026-10-11',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:5,lag:0,mot:'NIT-HAK/Skjette',dato:'2026-10-25',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:6,lag:0,mot:'Kjelsås',dato:'2026-10-31',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:7,lag:0,mot:'Haslum 2',dato:'2026-11-07',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:8,lag:0,mot:'Haslum',dato:'2026-11-22',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:9,lag:0,mot:'Fjellhammer 2',dato:'2026-11-29',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:10,lag:0,mot:'Ski',dato:'2026-12-13',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:11,lag:1,mot:'Asker/Gui/Jardar',dato:'2026-09-06',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:12,lag:1,mot:'NIT-HAK/Skjette',dato:'2026-09-06',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:13,lag:1,mot:'Njård/Snarøya 2',dato:'2026-09-13',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:14,lag:1,mot:'Lillestrøm HK',dato:'2026-09-19',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:15,lag:1,mot:'Kjelsås 2',dato:'2026-11-01',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:16,lag:1,mot:'Haslum 3',dato:'2026-11-01',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:17,lag:1,mot:'Fjellhammer',dato:'2026-11-07',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:18,lag:1,mot:'Øvrevoll Hosle/U',dato:'2026-11-08',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:19,lag:1,mot:'Eidsvold Turn',dato:'2026-11-15',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:20,lag:1,mot:'Borgen/Hauers',dato:'2026-11-21',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:21,lag:2,mot:'Nordby 2',dato:'2026-09-05',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:22,lag:2,mot:'Furuset Håndbal',dato:'2026-09-06',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:23,lag:2,mot:'Lillestrøm HK 2',dato:'2026-09-20',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:24,lag:2,mot:'Kolbotn 2',dato:'2026-10-10',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:25,lag:2,mot:'Bøler',dato:'2026-10-11',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:26,lag:2,mot:'Furuset Håndbal',dato:'2026-10-11',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:27,lag:2,mot:'Nordby 2',dato:'2026-10-17',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:28,lag:2,mot:'Bøler',dato:'2026-10-18',hb:'Borte',start:'',slutt:'',spillere:[]},
+  {id:29,lag:2,mot:'Lillestrøm HK 2',dato:'2026-10-24',hb:'Hjemme',start:'',slutt:'',spillere:[]},
+  {id:30,lag:2,mot:'Kolbotn 2',dato:'2026-10-25',hb:'Hjemme',start:'',slutt:'',spillere:[]}
+];
+
+const INIT_PLAYERS=[
+  {id:1,navn:'Adrian Hagen'},{id:2,navn:'Andreas Evju-Warnken'},{id:3,navn:'August Lothe Salvesen'},
+  {id:4,navn:'Borgar Kolbenstvedt Elvestuen'},{id:5,navn:'Christoffer Holtedahl'},{id:6,navn:'Edvard Kvalheim-Bentsen'},
+  {id:7,navn:'Håkon Gram-Jarvaag'},{id:8,navn:'Isak Kalvøy Tokstad'},{id:9,navn:'Jakob Mikal Sem Siler'},
+  {id:10,navn:'Jakob Sandøy-Seiness'},{id:11,navn:'Jakob Tran Fladmoe'},{id:12,navn:'Johannes Sagatun-Langleite'},
+  {id:13,navn:'Johan Anker Løvholt'},{id:14,navn:'Konrad Ulrik Lux Ruppert Aasland'},{id:15,navn:'Kristian Tinmannsvik Gjerde'},
+  {id:16,navn:'Lars Langset Faaberg'},{id:17,navn:'Lars Vartdal Vines'},{id:18,navn:'Ludvig Helland Hoel'},
+  {id:19,navn:'Marcus Martin-Asak'},{id:20,navn:'Marius Helmer Skomedal'},{id:21,navn:'Mathias Solheim Petersen'},
+  {id:22,navn:'Max Bruun-Kallum'},{id:23,navn:'Odin Leander Kuhnt-Dyrdal'},{id:24,navn:'Ole William Håland'},
+  {id:25,navn:'Petter Riis Mikalsen'},{id:26,navn:'Sophus Stene Bjørk'},{id:27,navn:'Sveinung Dybvik Haugse'},
+  {id:28,navn:'Tinus Andreas Beck'},{id:29,navn:'Trym Bjaanæs'},{id:30,navn:'Viljar Halvorsen Klemo'},
+  {id:31,navn:'Wilhelm Flækøy Dalen'},{id:32,navn:'Zacharias Abbou'}
+];
+
+let kamper=[],players=[];
+let nextId=100,nextPId=100;
+let visÅr=2026,visMnd=8,tilgLag=0,aktivKampId=null,matriseFil=-1;
+let sortKol='navn',sortAsc=true;
+let initialLoad=true;
+
+function setSyncStatus(status){
+  const el=document.getElementById('sync-ind');
+  if(!el)return;
+  el.className='sync-indicator '+status;
+  el.innerHTML=status==='synced'?'<i class="ti ti-check"></i> Synkronisert':status==='syncing'?'<i class="ti ti-refresh"></i> Synkroniserer...':'<i class="ti ti-wifi-off"></i> Frakoblet';
+}
+
+// Lytt på endringer fra Firebase i sanntid
+onValue(ref(db,'data'), (snapshot)=>{
+  const data=snapshot.val();
+  if(data){
+    kamper=data.kamper||[];
+    players=data.players||[];
+    nextId=Math.max(100,...kamper.map(k=>k.id))+1;
+    nextPId=Math.max(100,...players.map(p=>p.id))+1;
+  } else {
+    // Første gang – skriv startdata til Firebase
+    kamper=JSON.parse(JSON.stringify(INIT_KAMPER));
+    players=JSON.parse(JSON.stringify(INIT_PLAYERS));
+    fbSave();
+  }
+  setSyncStatus('synced');
+  refreshCurrentPage();
+  initialLoad=false;
+},(error)=>{
+  setSyncStatus('offline');
+  console.error(error);
+});
+
+function fbSave(){
+  setSyncStatus('syncing');
+  set(ref(db,'data'),{kamper,players})
+    .then(()=>setSyncStatus('synced'))
+    .catch(()=>setSyncStatus('offline'));
+}
+
+function refreshCurrentPage(){
+  const active=document.querySelector('.page.active');
+  if(!active)return;
+  const id=active.id.replace('page-','');
+  if(id==='kalender')renderKalender();
+  if(id==='matrise')renderMatrise();
+  if(id==='statistikk')renderStatistikk();
+  if(id==='spillere')renderSpillere();
+  if(id==='tilgang')renderTilgang();
+}
+
+function fmtDatoKort(d){const[,m,da]=d.split('-');return`${da}.${m}`;}
+function toMin(dato,tid){if(!dato||!tid)return null;return new Date(dato+'T'+tid).getTime()/60000;}
+function harSpiltK1(sid,dato){return kamper.some(k=>k.lag===0&&k.spillere.includes(sid)&&k.dato<=dato);}
+function effNivå(sid,dato){
+  for(let lag=0;lag<=2;lag++){
+    const påNivå=kamper.filter(k=>k.lag===lag&&k.dato<=dato).sort((a,b)=>b.dato.localeCompare(a.dato));
+    if(!påNivå.length)continue;
+    const sd=påNivå.find(k=>k.spillere.includes(sid));
+    if(!sd)continue;
+    if(påNivå.some(k=>k.dato>sd.dato))continue;
+    return lag;
+  }
+  return null;
+}
+function kanSpille(sid,kampLag,dato){
+  if(kampLag===2&&harSpiltK1(sid,dato))return{ok:false,grunn:'Har spilt K1 – aldri K3'};
+  return{ok:true,grunn:''};
+}
+function harKarantene(sid,kampLag,kampDato){
+  if(kampLag===0)return false;
+  const hl=kampLag-1;
+  const hd=kamper.filter(k=>k.lag===hl&&k.spillere.includes(sid)&&k.dato<kampDato).sort((a,b)=>b.dato.localecompare(a.dato));
+  if(!hd.length)return false;
+  const sh=hd[0];
+  const he=kamper.filter(k=>k.lag===hl&&k.dato>sh.dato&&k.dato<kampDato);
+  if(he.some(k=>!k.spillere.includes(sid)))return false;
+  const nk=kamper.filter(k=>k.lag===kampLag&&k.spillere.includes(sid)&&k.dato>sh.dato&&k.dato<=kampDato).sort((a,b)=>a.dato.localeCompare(b.dato))[0];
+  if(!nk)return false;
+  return sh.spillere.filter(id=>nk.spillere.includes(id)&&effNivå(id,sh.dato)===hl).length>3;
+}
+function sjekkPause(sid,kampId,kampDato,kampStart){
+  if(!kampStart)return{blokkert:false,grunn:''};
+  const ksm=toMin(kampDato,kampStart);if(ksm===null)return{blokkert:false,grunn:''};
+  for(const k of kamper){
+    if(k.id===kampId||!k.spillere.includes(sid)||!k.dato||!k.start)continue;
+    const asm=toMin(k.dato,k.start);if(asm===null||asm>=ksm)continue;
+    if(!k.slutt)return{blokkert:true,grunn:'Mangler slutt-tid på annen kamp'};
+    const slm=toMin(k.dato,k.slutt);if(slm===null)continue;
+    if(ksm-slm<60)return{blokkert:true,grunn:`${Math.round(60-(ksm-slm))} min for lite pause`};
+  }
+  return{blokkert:false,grunn:''};
+}
+
+function setMatriseFil(lag){
+  matriseFil=lag;
+  [-1,0,1,2].forEach(l=>{const el=document.getElementById(l===-1?'mfil-all':`mfil-${l}`);if(el)el.className='btn btn-sm'+(l===lag?' btn-primary':'');});
+  renderMatrise();
+}
+
+function renderMatrise(){
+  if(!kamper.length)return;
+  const synlige=kamper.filter(k=>matriseFil===-1||k.lag===matriseFil).sort((a,b)=>a.dato.localeCompare(b.dato)||a.lag-b.lag);
+  const sp=[...players].sort((a,b)=>a.navn.localeCompare(b.navn,'no'));
+  document.getElementById('matrise-info').textContent=`${sp.length} spillere · ${synlige.length} kamper`;
+  let html=`<table class="matrise-table"><thead><tr><th class="spiller-col" style="font-size:11px;color:var(--color-text-secondary)">Spiller</th>`;
+  synlige.forEach(k=>{html+=`<th style="background:${LAGFARGE_BG[k.lag]}"><div class="kamp-hdr"><span class="kamp-hdr-lag ${LAGCLS[k.lag]}">${LAGNAVN[k.lag]}</span><span class="kamp-hdr-mot" style="color:${LAGFARGE_TXT[k.lag]};opacity:.8">${k.mot.split('/')[0]}</span><span class="kamp-hdr-dato">${fmtDatoKort(k.dato)}</span></div></th>`;});
+  html+=`</tr></thead><tbody><tr class="sum-row"><td class="spiller-col" style="font-size:11px;color:var(--color-text-secondary);font-weight:500">Antall spillere</td>`;
+  synlige.forEach(k=>{const n=k.spillere.length;html+=`<td style="background:${LAGFARGE_BG[k.lag]}20"><div class="sum-celle ${n>0?LAGCLS[k.lag]:'zero'}">${n||'–'}</div></td>`;});
+  html+=`</tr>`;
+  sp.forEach(p=>{
+    html+=`<tr><td class="spiller-col">${p.navn}</td>`;
+    synlige.forEach(k=>{
+      const er=k.spillere.includes(p.id);
+      const {ok}=kanSpille(p.id,k.lag,k.dato);
+      const q=!er&&harKarantene(p.id,k.lag,k.dato);
+      const pa=!er?sjekkPause(p.id,k.id,k.dato,k.start):{blokkert:false};
+      let cls='celle';let title='';let bl=false;
+      if(er){cls+=` ${LAGCLS[k.lag]}-ja`;title='Klikk for å fjerne';}
+      else if(!ok){cls+=' blokkert';title='K1-spiller – aldri K3';bl=true;}
+      else if(q){cls+=' karantene';title='Karantene';bl=true;}
+      else if(pa.blokkert){cls+=' blokkert';title=pa.grunn;bl=true;}
+      const oc=bl?'':`onclick="window.toggleMatrise(${p.id},${k.id})"`;
+      html+=`<td><div class="${cls}" ${oc} title="${title}">${er?'✓':bl?'–':''}</div></td>`;
+    });
+    html+=`</tr>`;
+  });
+  html+=`</tbody></table>`;
+  document.getElementById('matrise-innhold').innerHTML=html;
+}
+
+window.toggleMatrise=function(pid,kampId){
+  const kamp=kamper.find(k=>k.id===kampId);if(!kamp)return;
+  if(kamp.spillere.includes(pid)){kamp.spillere=kamp.spillere.filter(x=>x!==pid);}
+  else{
+    const {ok}=kanSpille(pid,kamp.lag,kamp.dato);if(!ok)return;
+    if(harKarantene(pid,kamp.lag,kamp.dato))return;
+    if(sjekkPause(pid,kampId,kamp.dato,kamp.start).blokkert)return;
+    kamp.spillere.push(pid);
+  }
+  fbSave();renderMatrise();
+};
+
+function kampTeller(sid){return{k1:kamper.filter(k=>k.lag===0&&k.spillere.includes(sid)).length,k2:kamper.filter(k=>k.lag===1&&k.spillere.includes(sid)).length,k3:kamper.filter(k=>k.lag===2&&k.spillere.includes(sid)).length};}
+window.setSortKol=function(kol){if(sortKol===kol)sortAsc=!sortAsc;else{sortKol=kol;sortAsc=kol==='navn';}renderStatistikk();};
+function renderStatistikk(){
+  if(!players.length)return;
+  const today=new Date().toISOString().split('T')[0];
+  const data=players.map(p=>{const t=kampTeller(p.id);return{...p,...t,tot:t.k1+t.k2+t.k3,eN:effNivå(p.id,today)};});
+  data.sort((a,b)=>{const va=a[sortKol==='navn'?'navn':sortKol],vb=b[sortKol==='navn'?'navn':sortKol];if(typeof va==='string')return sortAsc?va.localeCompare(vb,'no'):vb.localeCompare(va,'no');return sortAsc?va-vb:vb-va;});
+  ['navn','k1','k2','k3','tot'].forEach(k=>{const el=document.getElementById('sort-'+k);if(el)el.textContent=sortKol===k?(sortAsc?'↑':'↓'):'↕';});
+  document.getElementById('stat-info').textContent=`${data.length} spillere · ${data.reduce((s,p)=>s+p.tot,0)} kampdeltakelser`;
+  document.getElementById('stat-tbody').innerHTML=data.map(p=>`<tr><td>${p.navn}</td><td class="num"><span class="stat-num ${p.k1>0?'k1':'zero'}">${p.k1}</span></td><td class="num"><span class="stat-num ${p.k2>0?'k2':'zero'}">${p.k2}</span></td><td class="num"><span class="stat-num ${p.k3>0?'k3':'zero'}">${p.k3}</span></td><td class="num"><span class="stat-num ${p.tot>0?'':'zero'}">${p.tot}</span></td><td>${p.eN!==null?`<span class="badge ${NIVÅ_BADGE[p.eN]}">${LAGNAVN[p.eN]}</span>`:'<span class="badge badge-gray">fri</span>'}${harSpiltK1(p.id,today)?'<span class="badge badge-red" style="margin-left:4px">K1✓</span>':''}</td></tr>`).join('');
+}
+
+function fmtDato(d){
+  const[,m,da]=d.split('-');
+  const dager=['Sun','Man','Tir','Ons','Tor','Fre','Lør','Søn'];
+  const mk=['','jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  return`${dager[new Date(d+'T12:00:00').getDay()]} ${parseInt(da)}. ${mk[parseInt(m)]}`;
+}
+
+window.showPage=function(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');btn.classList.add('active');aktivKampId=null;
+  if(id==='kalender')renderKalender();
+  if(id==='matrise')renderMatrise();
+  if(id==='statistikk')renderStatistikk();
+  if(id==='spillere')renderSpillere();
+  if(id==='tilgang'){document.getElementById('tilg-dato').value=new Date().toISOString().split('T')[0];renderTilgang();}
+};
+
+window.byttMåned=function(d){visMnd+=d;if(visMnd>11){visMnd=0;visÅr++;}if(visMnd<0){visMnd=11;visÅr--;}aktivKampId=null;renderKalender();};
+window.fjernAlle=function(kampId){const kamp=kamper.find(k=>k.id===kampId);if(!kamp)return;kamp.spillere=[];fbSave();aktivKampId=kampId;renderKalender();};
+
+function panelHTML(kampId){
+  const kamp=kamper.find(k=>k.id===kampId);if(!kamp)return'';
+  const lag=kamp.lag;const sorted=[...players].sort((a,b)=>a.navn.localeCompare(b.navn,'no'));const valgte=new Set(kamp.spillere);
+  const varsel=[];
+  if(!kamp.start)varsel.push({t:'warn',m:'Sett kampstart og -slutt for å sjekke 1-timesregelen.'});
+  if(lag>0){const fH=[...valgte].filter(id=>effNivå(id,kamp.dato)===lag-1);if(fH.length>3)varsel.push({t:'err',m:`${fH.length} spillere med ${LAGNAVN[lag-1]}-nivå – maks 3 tillatt.`});else if(fH.length>0)varsel.push({t:'ok',m:`${fH.length} spiller(e) med ${LAGNAVN[lag-1]}-nivå – OK.`});}
+  if(lag===2){const fK1=[...valgte].filter(id=>harSpiltK1(id,kamp.dato));if(fK1.length)varsel.push({t:'err',m:`${fK1.length} spiller(e) med K1-historikk – ikke tillatt i K3.`});}
+  return`<div class="panel"><div class="panel-header"><div><div class="panel-title">${LAGNAVN[lag]} – ${kamp.mot}</div><div style="font-size:12px;color:var(--color-text-secondary)">${fmtDato(kamp.dato)} · ${kamp.hb} · ${valgte.size} valgt</div></div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px">
+    <div style="display:flex;gap:4px;align-items:center"><span style="font-size:11px;color:var(--color-text-secondary)">Start</span><input type="time" value="${kamp.start||''}" id="panel-start" onchange="window.oppdaterKampTid(${kampId})" style="font-size:12px;padding:5px 8px;width:100px"></div>
+    <div style="display:flex;gap:4px;align-items:center"><span style="font-size:11px;color:var(--color-text-secondary)">Slutt</span><input type="time" value="${kamp.slutt||''}" id="panel-slutt" onchange="window.oppdaterKampTid(${kampId})" style="font-size:12px;padding:5px 8px;width:100px"></div>
+    ${valgte.size>0?`<button class="btn btn-sm btn-danger" onclick="window.fjernAlle(${kampId})"><i class="ti ti-x"></i> Fjern alle</button>`:''}
+    <button class="btn-icon" onclick="window.lukkPanel()" style="margin-left:auto"><i class="ti ti-x"></i></button>
+  </div></div>
+  ${varsel.map(v=>`<div class="alert alert-${v.t==='ok'?'ok':v.t==='warn'?'warn':'err'}">${v.m}</div>`).join('')}
+  <div class="player-grid">${sorted.map(p=>{
+    const sel=valgte.has(p.id);const {ok,grunn}=kanSpille(p.id,lag,kamp.dato);
+    const q=!sel&&harKarantene(p.id,lag,kamp.dato);
+    const pauseRes=!sel?sjekkPause(p.id,kampId,kamp.dato,kamp.start):{blokkert:false,grunn:''};
+    const e=effNivå(p.id,kamp.dato);const ulovlig=sel&&!ok;
+    const cls=ulovlig?'selected quarantine':sel?'selected':!ok?'locked':q?'quarantine':pauseRes.blokkert?'pause':'';
+    const hint=ulovlig?grunn:!ok?grunn:q?'Karantene':pauseRes.blokkert?pauseRes.grunn:'';
+    return`<div class="player-chip ${cls}" onclick="window.toggleSpiller(${p.id},${kampId})" title="${hint}">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.navn}</span>
+      <span style="flex-shrink:0;display:flex;gap:2px">${e!==null?`<span class="badge ${NIVÅ_BADGE[e]}">${LAGNAVN[e]}</span>`:''}${pauseRes.blokkert&&!sel?'<span class="badge badge-amber">⏱</span>':''}${!ok?'<span class="badge badge-red">K1</span>':''}${q?'<span class="badge badge-red">K</span>':''}</span>
+    </div>`;
+  }).join('')}</div></div>`;
+}
+
+window.oppdaterKampTid=function(kampId){
+  const kamp=kamper.find(k=>k.id===kampId);if(!kamp)return;
+  kamp.start=document.getElementById('panel-start').value;
+  kamp.slutt=document.getElementById('panel-slutt').value;
+  fbSave();aktivKampId=kampId;renderKalender();
+};
+
+function renderKalender(){
+  if(!kamper.length&&!initialLoad)return;
+  document.getElementById('mnd-label').textContent=`${MND[visMnd]} ${visÅr}`;
+  const datoer=[...new Set(kamper.filter(k=>{const[y,m]=k.dato.split('-');return parseInt(y)===visÅr&&parseInt(m)-1===visMnd;}).map(k=>k.dato))].sort();
+  const cont=document.getElementById('kalender-innhold');
+  if(!datoer.length){cont.innerHTML=`<div style="color:var(--color-text-secondary);font-size:14px;padding:2rem 0;text-align:center">Ingen kamper denne måneden</div>`;return;}
+  cont.innerHTML=datoer.map(dato=>{
+    const dagKamper=kamper.filter(k=>k.dato===dato);
+    const aktivPåDenneDagen=aktivKampId&&dagKamper.some(k=>k.id===aktivKampId);
+    const cols=[0,1,2].map(lag=>{
+      const lagKamper=dagKamper.filter(k=>k.lag===lag);
+      if(!lagKamper.length)return`<div class="lag-col tom"><div class="lag-header"><span class="lag-name ${LAGCLS[lag]}">${LAGNAVN[lag]}</span></div><div class="lag-body"><span class="ingen">Ingen kamp</span></div></div>`;
+      return lagKamper.map(k=>{
+        const pills=k.spillere.length?k.spillere.map(sid=>{const p=players.find(x=>x.id===sid);const e=effNivå(sid,k.dato);return`<span class="spiller-pill ${e!==null?LAGCLS[e]:'fri'}">${p?p.navn.split(' ')[0]:'?'}</span>`;}).join(''):`<span class="ingen">Ingen valgt</span>`;
+        return`<div class="lag-col${aktivKampId===k.id?' aktiv':''}"><div class="lag-header"><div><div class="lag-name ${LAGCLS[lag]}">${LAGNAVN[lag]}</div><div class="lag-mot">${k.mot} · ${k.hb}${k.start?' · '+k.start:''}</div></div><div style="display:flex;gap:4px"><button class="btn-icon btn-sm" onclick="window.åpnePanel(${k.id},'${dato}')" style="font-size:13px"><i class="ti ti-edit"></i></button><button class="btn-icon btn-sm" onclick="window.slettKamp(${k.id})" style="color:#A32D2D;font-size:13px"><i class="ti ti-trash"></i></button></div></div><div class="lag-body">${pills}</div></div>`;
+      }).join('');
+    });
+    return`<div class="day-block" id="dag-${dato}"><div class="day-label">${fmtDato(dato)}</div><div class="lag-grid">${cols.join('')}</div>${aktivPåDenneDagen?panelHTML(aktivKampId):''}</div><div style="margin-bottom:1.25rem"></div>`;
+  }).join('');
+}
+
+window.åpnePanel=function(id,dato){aktivKampId=id;renderKalender();setTimeout(()=>{const el=document.getElementById('dag-'+dato);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},50);};
+window.lukkPanel=function(){aktivKampId=null;renderKalender();};
+window.toggleSpiller=function(pid,kampId){
+  const kamp=kamper.find(k=>k.id===kampId);if(!kamp)return;
+  const {ok}=kanSpille(pid,kamp.lag,kamp.dato);
+  if(kamp.spillere.includes(pid)){kamp.spillere=kamp.spillere.filter(x=>x!==pid);}
+  else{if(!ok)return;if(harKarantene(pid,kamp.lag,kamp.dato))return;if(sjekkPause(pid,kampId,kamp.dato,kamp.start).blokkert)return;kamp.spillere.push(pid);}
+  fbSave();aktivKampId=kampId;renderKalender();
+};
+window.slettKamp=function(id){if(!confirm('Slett?'))return;if(aktivKampId===id)aktivKampId=null;kamper=kamper.filter(k=>k.id!==id);fbSave();renderKalender();};
+
+window.visNyKamp=function(){
+  aktivKampId=null;
+  document.getElementById('ny-kamp-panel').innerHTML=`<div class="panel" style="margin-bottom:1rem"><div class="panel-header"><span class="panel-title">Ny kamp</span><button class="btn-icon" onclick="window.lukkNyKamp()"><i class="ti ti-x"></i></button></div>
+    <div class="input-row"><label>Lag</label><select id="nk-lag"><option value="0">K1</option><option value="1">K2</option><option value="2">K3</option></select></div>
+    <div class="input-row"><label>Motstander</label><input type="text" id="nk-mot" placeholder="Motstander" style="flex:1"></div>
+    <div class="input-row"><label>Dato</label><input type="date" id="nk-dato"></div>
+    <div class="input-row"><label>H/B</label><select id="nk-hb"><option>Hjemme</option><option>Borte</option></select></div>
+    <div class="input-row"><label>Start</label><input type="time" id="nk-start" value="15:00"></div>
+    <div class="input-row"><label>Slutt</label><input type="time" id="nk-slutt" value="16:30"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px"><button class="btn btn-sm" onclick="window.lukkNyKamp()">Avbryt</button><button class="btn btn-primary btn-sm" onclick="window.lagreNyKamp()">Lagre</button></div></div>`;
+};
+window.lukkNyKamp=function(){document.getElementById('ny-kamp-panel').innerHTML='';};
+window.lagreNyKamp=function(){
+  const lag=parseInt(document.getElementById('nk-lag').value);const mot=document.getElementById('nk-mot').value.trim();const dato=document.getElementById('nk-dato').value;
+  if(!mot||!dato){alert('Fyll inn motstander og dato.');return;}
+  kamper.push({id:nextId++,lag,mot,dato,hb:document.getElementById('nk-hb').value,start:document.getElementById('nk-start').value,slutt:document.getElementById('nk-slutt').value,spillere:[]});
+  kamper.sort((a,b)=>a.dato.localeCompare(b.dato));
+  const[y,m]=dato.split('-');visÅr=parseInt(y);visMnd=parseInt(m)-1;
+  fbSave();window.lukkNyKamp();renderKalender();
+};
+
+window.setTilgLag=function(l){tilgLag=l;[0,1,2].forEach(i=>{document.getElementById('tbtn-'+i).className='btn btn-sm'+(i===l?' btn-primary':'');});renderTilgang();};
+function renderTilgang(){
+  if(!players.length)return;
+  const dato=document.getElementById('tilg-dato').value||new Date().toISOString().split('T')[0];
+  const tid=document.getElementById('tilg-tid').value||'12:00';
+  const alle=[...players].sort((a,b)=>a.navn.localeCompare(b.navn,'no')).map(p=>{const {ok,grunn}=kanSpille(p.id,tilgLag,dato);const pauseRes=sjekkPause(p.id,-1,dato,tid);return{...p,e:effNivå(p.id,dato),ok,grunn,q:harKarantene(p.id,tilgLag,dato),pauseRes};});
+  function chip(p,s){return`<div class="spiller-row" style="${s==='q'?'background:#FCEBEB;color:#791F1F;':s==='pause'?'background:#FAEEDA;color:#633806;':s==='l'?'opacity:.5;':''}"><span>${p.navn}</span><span style="display:flex;gap:3px;flex-wrap:wrap">${p.e!==null?`<span class="badge ${NIVÅ_BADGE[p.e]}">${LAGNAVN[p.e]}</span>`:'<span class="badge badge-gray">fri</span>'}${p.pauseRes.blokkert?'<span class="badge badge-amber">pause</span>':''}${p.q?'<span class="badge badge-red">Karantene</span>':''}${!p.ok?'<span class="badge badge-red">↑K1</span>':''}</span></div>`;}
+  const tilgj=alle.filter(p=>p.ok&&!p.q&&!p.pauseRes.blokkert);
+  const ikamp=alle.filter(p=>p.ok&&!p.q&&p.pauseRes.blokkert);
+  const karan=alle.filter(p=>p.ok&&p.q);
+  const sperr=alle.filter(p=>!p.ok);
+  let html=`<div style="font-size:13px;font-weight:500;margin-bottom:6px">Tilgjengelig <span class="badge badge-green">${tilgj.length}</span></div><div class="spillere-grid" style="margin-bottom:1rem">${tilgj.map(p=>chip(p,'')).join('')}</div>`;
+  if(ikamp.length)html+=`<div style="font-size:13px;font-weight:500;margin-bottom:6px">Trenger pause <span class="badge badge-amber">${ikamp.length}</span></div><div class="spillere-grid" style="margin-bottom:1rem">${ikamp.map(p=>chip(p,'pause')).join('')}</div>`;
+  if(karan.length)html+=`<div style="font-size:13px;font-weight:500;margin-bottom:6px">Karantene <span class="badge badge-red">${karan.length}</span></div><div class="spillere-grid" style="margin-bottom:1rem">${karan.map(p=>chip(p,'q')).join('')}</div>`;
+  if(sperr.length)html+=`<div style="font-size:13px;font-weight:500;margin-bottom:6px">Ikke spilleberettiget <span class="badge badge-red">${sperr.length}</span></div><div class="spillere-grid">${sperr.map(p=>chip(p,'l')).join('')}</div>`;
+  document.getElementById('tilg-innhold').innerHTML=html;
+}
+
+function renderSpillere(){
+  if(!players.length)return;
+  const sorted=[...players].sort((a,b)=>a.navn.localeCompare(b.navn,'no'));const today=new Date().toISOString().split('T')[0];
+  document.getElementById('spiller-antall').textContent=`${players.length} spillere`;
+  document.getElementById('spillere-innhold').innerHTML=sorted.map(p=>{const e=effNivå(p.id,today);const k1=harSpiltK1(p.id,today);return`<div class="spiller-row"><span>${p.navn}</span><span style="display:flex;gap:4px;align-items:center">${e!==null?`<span class="badge ${NIVÅ_BADGE[e]}">${LAGNAVN[e]}</span>`:'<span class="badge badge-gray">fri</span>'}${k1?'<span class="badge badge-red">K1</span>':''}<button class="btn-icon" onclick="window.endreNavn(${p.id})" style="padding:4px 6px;font-size:14px"><i class="ti ti-edit"></i></button><button class="btn-icon" onclick="window.slettSpiller(${p.id})" style="padding:4px 6px;font-size:14px;color:#A32D2D"><i class="ti ti-trash"></i></button></span></div>`;}).join('');
+}
+window.endreNavn=function(id){const p=players.find(x=>x.id===id);if(!p)return;const n=prompt('Nytt navn:',p.navn);if(n&&n.trim()){p.navn=n.trim();fbSave();renderSpillere();}};
+window.slettSpiller=function(id){if(!confirm('Slett?'))return;players=players.filter(p=>p.id!==id);fbSave();renderSpillere();};
+window.leggTilSpiller=function(){const n=prompt('Navn:');if(!n||!n.trim())return;players.push({id:nextPId++,navn:n.trim()});fbSave();renderSpillere();};
+window.setMatriseFil=setMatriseFil;
+window.setSortKol=function(kol){if(sortKol===kol)sortAsc=!sortAsc;else{sortKol=kol;sortAsc=kol==='navn';}renderStatistikk();};
+
+document.getElementById('tilg-dato').value=new Date().toISOString().split('T')[0];
+document.getElementById('tilg-dato').addEventListener('change',renderTilgang);
+renderKalender();
+</script>
+</body>
+</html>
