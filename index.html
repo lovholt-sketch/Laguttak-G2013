@@ -269,7 +269,7 @@ window.showPage=function(id,btn){
   else if(id==='matrise')renderMatrise();
   else if(id==='statistikk')renderStatistikk();
   else if(id==='spillere')renderSpillere();
-  else if(id==='tilgang'){document.getElementById('tilg-dato').value=new Date().toISOString().split('T')[0];renderTilgang();}
+  else if(id==='tilgang'){renderTilgang();}
 };
 window.byttMåned=function(d){visMnd+=d;if(visMnd>11){visMnd=0;visÅr++;}if(visMnd<0){visMnd=11;visÅr--;}aktivKampId=null;renderKalender();};
 
