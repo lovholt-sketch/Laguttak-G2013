@@ -111,7 +111,7 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 .celle.k1-ja{background:#EEEDFE;color:#3C3489}
 .celle.k2-ja{background:#E1F5EE;color:#085041}
 .celle.k3-ja{background:#FAEEDA;color:#633806}
-.celle.blokkert{opacity:.2;cursor:not-allowed}
+.celle.blokkert{opacity:.25;cursor:not-allowed;color:var(--cs)}
 .celle.karantene{background:#FCEBEB;cursor:not-allowed;color:#A32D2D}
 .sum-celle{display:inline-flex;align-items:center;justify-content:center;width:26px;height:20px;border-radius:4px;font-size:11px;font-weight:700}
 .sum-celle.k1{background:#EEEDFE;color:#3C3489}.sum-celle.k2{background:#E1F5EE;color:#085041}.sum-celle.k3{background:#FAEEDA;color:#633806}.sum-celle.zero{color:var(--cs);font-weight:400}
@@ -194,7 +194,7 @@ const LAGNAVN=['K1','K2','K3'],LAGCLS=['k1','k2','k3'],NB=['badge-purple','badge
 const MND=['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
 const LAGBG=['#EEEDFE','#E1F5EE','#FAEEDA'],LAGTXT=['#3C3489','#085041','#633806'];
 let kamper=[],players=[],nextId=100,nextPId=100;
-let visÅr=2026,visMnd=8,tilgLag=0,aktivKampId=null,matriseFil=-1,sortKol='navn',sortAsc=true;
+let visÅr=2026,visMnd=8,tilgLag=0,aktivKampId=null,redigeringKampId=null,matriseFil=-1,sortKol='navn',sortAsc=true;
 
 function si(s){const el=document.getElementById('sync-ind');if(!el)return;el.className='sync '+s;el.innerHTML=s==='synced'?'✓ Synkronisert':s==='syncing'?'↻ Synkroniserer...':'✕ Frakoblet';}
 
@@ -291,8 +291,8 @@ function renderKalender(){
         // På desktop: ikonknapper i toppen som før
         const topBtns=mob?'':
           `<div class="lag-top-btns">
-            <button class="btn-icon btn-sm" onclick="event.stopPropagation();åpnePanel(${k.id},'${dato}')" style="font-size:12px;min-width:30px;height:30px">✎</button>
-            <button class="btn-icon btn-sm" onclick="event.stopPropagation();slettKamp(${k.id})" style="font-size:12px;min-width:30px;height:30px;color:#A32D2D">🗑</button>
+            <button class="btn-icon btn-sm" onclick="event.stopPropagation();åpneRedigering(${k.id})" style="font-size:12px;min-width:30px;height:30px" title="Rediger kamp">✎</button>
+            <button class="btn-icon btn-sm" onclick="event.stopPropagation();slettKamp(${k.id})" style="font-size:12px;min-width:30px;height:30px;color:#A32D2D" title="Slett kamp">🗑</button>
           </div>`;
         const cardClick=mob?`onclick="åpnePanel(${k.id},'${dato}')"`:
           `onclick="åpnePanel(${k.id},'${dato}')"`;
@@ -308,7 +308,7 @@ function renderKalender(){
         </div>`;
       }).join('')+`</div>`;
     });
-    return`<div class="day-block" id="dag-${dato}"><div class="day-label">${fmtDato(dato)}</div><div class="lag-grid">${cols.join('')}</div>${ap?panelHTML(aktivKampId):''}</div><div style="margin-bottom:1.25rem"></div>`;
+    return`<div class="day-block" id="dag-${dato}"><div class="day-label">${fmtDato(dato)}</div><div class="lag-grid">${cols.join('')}</div>${ap?panelHTML(aktivKampId):''}${redigeringKampId&&dk.some(k=>k.id===redigeringKampId)?redigeringsPanel(redigeringKampId):''}</div><div style="margin-bottom:1.25rem"></div>`;
   }).join('')+`</div>`;
 }
 
@@ -347,6 +347,57 @@ function panelHTML(kid){
     }).join('')}</div>
   </div>`;
 }
+
+
+function redigeringsPanel(kid){
+  const k=kamper.find(x=>x.id===kid);if(!k)return'';
+  return`<div class="panel" style="border-color:#633806;margin-top:10px">
+    <div class="panel-header">
+      <div><div class="panel-title">Rediger kamp</div><div class="panel-meta">${LAGNAVN[k.lag]} – ${k.mot}</div></div>
+      <button class="btn-icon" onclick="lukkRedigering()">✕</button>
+    </div>
+    <div class="input-row"><label>Lag</label><select id="re-lag" style="font-size:13px;padding:6px 9px">
+      <option value="0" ${k.lag===0?'selected':''}>K1</option>
+      <option value="1" ${k.lag===1?'selected':''}>K2</option>
+      <option value="2" ${k.lag===2?'selected':''}>K3</option>
+    </select></div>
+    <div class="input-row"><label>Motstander</label><input type="text" id="re-mot" value="${k.mot}" style="flex:1;font-size:14px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
+    <div class="input-row"><label>Dato</label><input type="date" id="re-dato" value="${k.dato}" style="font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
+    <div class="input-row"><label>H/B</label><select id="re-hb" style="font-size:13px;padding:6px 9px">
+      <option ${k.hb==='Hjemme'?'selected':''}>Hjemme</option>
+      <option ${k.hb==='Borte'?'selected':''}>Borte</option>
+    </select></div>
+    <div class="input-row"><label>Start</label><input type="time" id="re-start" value="${k.start||''}" style="font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
+    <div class="input-row"><label>Slutt</label><input type="time" id="re-slutt" value="${k.slutt||''}" style="font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+      <button class="btn btn-sm" onclick="lukkRedigering()">Avbryt</button>
+      <button class="btn btn-sm btn-primary" onclick="lagreRedigering(${kid})">Lagre</button>
+    </div>
+  </div>`;
+}
+
+window.åpneRedigering=function(id){
+  redigeringKampId=id;aktivKampId=null;renderKalender();
+  const k=kamper.find(x=>x.id===id);if(!k)return;
+  const[y,m]=k.dato.split('-');
+  const datoer=[...new Set(kamper.filter(kk=>{const[ky,km]=kk.dato.split('-');return+ky===+y&&+km-1===(+m-1);}).map(kk=>kk.dato))];
+  if(datoer.length){
+    setTimeout(()=>document.getElementById('dag-'+datoer[0])?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+  }
+};
+window.lukkRedigering=function(){redigeringKampId=null;renderKalender();};
+window.lagreRedigering=function(kid){
+  const k=kamper.find(x=>x.id===kid);if(!k)return;
+  k.lag=+document.getElementById('re-lag').value;
+  k.mot=document.getElementById('re-mot').value.trim()||k.mot;
+  k.dato=document.getElementById('re-dato').value||k.dato;
+  k.hb=document.getElementById('re-hb').value;
+  k.start=document.getElementById('re-start').value;
+  k.slutt=document.getElementById('re-slutt').value;
+  kamper.sort((a,b)=>a.dato.localeCompare(b.dato));
+  const[y,m]=k.dato.split('-');visÅr=+y;visMnd=+m-1;
+  fbSave();redigeringKampId=null;renderKalender();
+};
 
 window.åpnePanel=function(id,dato){
   if(aktivKampId===id){aktivKampId=null;renderKalender();return;}
@@ -404,9 +455,13 @@ function renderMatrise(){
     syn.forEach(k=>{
       const er=k.spillere.includes(p.id);const{ok}=kS(p.id,k.lag,k.dato);
       const q=!er&&hKar(p.id,k.lag,k.dato);const pa=!er?sPause(p.id,k.id,k.dato,k.start):{blokkert:false};
-      let cls='celle',bl=false;
-      if(er)cls+=` ${LAGCLS[k.lag]}-ja`;else if(!ok){cls+=' blokkert';bl=true;}else if(q){cls+=' karantene';bl=true;}else if(pa.blokkert){cls+=' blokkert';bl=true;}
-      h+=`<td><div class="${cls}" ${bl?'':` onclick="toggleMatrise(${p.id},${k.id})"`}>${er?'✓':bl?'–':''}</div></td>`;
+      let cls='celle',bl=false,blTitle='';
+      if(er)cls+=` ${LAGCLS[k.lag]}-ja`;
+      else if(!ok){cls+=' blokkert';bl=true;blTitle='K1-spiller – aldri K3';}
+      else if(q){cls+=' karantene';bl=true;blTitle='Karantene';}
+      else if(pa.blokkert){cls+=' blokkert';bl=true;blTitle=pa.grunn;}
+      else if(k.lag>0&&eN(p.id,k.dato)===k.lag-1&&k.spillere.filter(id=>eN(id,k.dato)===k.lag-1).length>=3){cls+=' blokkert';bl=true;blTitle='Maks 3 '+LAGNAVN[k.lag-1]+'-spillere nådd';}
+      h+=`<td><div class="${cls}" ${bl?`title="${blTitle}"`:` onclick="toggleMatrise(${p.id},${k.id})" title="Klikk for å legge til"`}>${er?'✓':bl?'⊘':''}</div></td>`;
     });h+=`</tr>`;
   });
   h+=`</tbody></table>`;
@@ -418,7 +473,7 @@ window.toggleMatrise=function(pid,kid){
   if(k.spillere.includes(pid))k.spillere=k.spillere.filter(x=>x!==pid);
   else{
     if(!ok||hKar(pid,k.lag,k.dato)||sPause(pid,kid,k.dato,k.start).blokkert)return;
-    if(k.lag>0){const antallHøyere=k.spillere.filter(id=>eN(id,k.dato)===k.lag-1).length;if(eN(pid,k.dato)===k.lag-1&&antallHøyere>=3){alert('Maks 3 '+LAGNAVN[k.lag-1]+'-spillere tillatt per kamp.');return;}}
+    if(k.lag>0){const antallHøyere=k.spillere.filter(id=>eN(id,k.dato)===k.lag-1).length;if(eN(pid,k.dato)===k.lag-1&&antallHøyere>=3)return;}
     k.spillere.push(pid);
   }
   fbSave();renderMatrise();
