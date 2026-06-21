@@ -416,7 +416,11 @@ window.toggleMatrise=function(pid,kid){
   const k=kamper.find(x=>x.id===kid);if(!k)return;
   const{ok}=kS(pid,k.lag,k.dato);
   if(k.spillere.includes(pid))k.spillere=k.spillere.filter(x=>x!==pid);
-  else{if(!ok||hKar(pid,k.lag,k.dato)||sPause(pid,kid,k.dato,k.start).blokkert)return;k.spillere.push(pid);}
+  else{
+    if(!ok||hKar(pid,k.lag,k.dato)||sPause(pid,kid,k.dato,k.start).blokkert)return;
+    if(k.lag>0){const antallHøyere=k.spillere.filter(id=>eN(id,k.dato)===k.lag-1).length;if(eN(pid,k.dato)===k.lag-1&&antallHøyere>=3){alert('Maks 3 '+LAGNAVN[k.lag-1]+'-spillere tillatt per kamp.');return;}}
+    k.spillere.push(pid);
+  }
   fbSave();renderMatrise();
 };
 window.setMatriseFil=function(l){matriseFil=l;[-1,0,1,2].forEach(x=>{const el=document.getElementById(x===-1?'mfil-all':`mfil-${x}`);if(el)el.className='btn btn-sm'+(x===l?' btn-primary':'');});renderMatrise();};
