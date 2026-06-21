@@ -291,7 +291,7 @@ function renderKalender(){
         // På desktop: ikonknapper i toppen som før
         const topBtns=mob?'':
           `<div class="lag-top-btns">
-            <button class="btn-icon btn-sm" onclick="event.stopPropagation();åpneRedigering(${k.id})" style="font-size:12px;min-width:30px;height:30px" title="Rediger kamp">✎</button>
+            <button class="btn-icon btn-sm" onclick="event.stopPropagation();åpnePanel(${k.id},'${dato}')" style="font-size:12px;min-width:30px;height:30px" title="Velg spillere">✎</button>
             <button class="btn-icon btn-sm" onclick="event.stopPropagation();slettKamp(${k.id})" style="font-size:12px;min-width:30px;height:30px;color:#A32D2D" title="Slett kamp">🗑</button>
           </div>`;
         const cardClick=mob?`onclick="åpnePanel(${k.id},'${dato}')"`:
@@ -332,7 +332,8 @@ function panelHTML(kid){
       <div class="time-grp"><span class="time-label">Start</span><input type="time" value="${k.start||''}" id="ps" onchange="oppdaterTid(${kid})" style="width:105px"></div>
       <div class="time-grp"><span class="time-label">Slutt</span><input type="time" value="${k.slutt||''}" id="psl" onchange="oppdaterTid(${kid})" style="width:105px"></div>
       ${valgte.size>0?`<button class="btn btn-sm btn-danger" onclick="fjernAlle(${kid})">✕ Fjern alle</button>`:''}
-      ${mob?`<button class="btn btn-sm btn-danger" onclick="slettKamp(${kid})" style="margin-left:auto">🗑 Slett kamp</button>`:''}
+      <button class="btn btn-sm" onclick="lukkPanel();setTimeout(()=>åpneRedigering(${kid}),50)">✎ Rediger kamp</button>
+      ${mob?`<button class="btn btn-sm btn-danger" onclick="slettKamp(${kid})">🗑 Slett kamp</button>`:''}
     </div>
     ${v.map(x=>`<div class="alert alert-${x.t==='ok'?'ok':x.t==='warn'?'warn':'err'}">${x.m}</div>`).join('')}
     <div class="player-grid">${sorted.map(p=>{
@@ -351,25 +352,27 @@ function panelHTML(kid){
 
 function redigeringsPanel(kid){
   const k=kamper.find(x=>x.id===kid);if(!k)return'';
+  const inp='font-size:13px;padding:6px 9px;border-radius:var(--r);border:1px solid var(--bo2);background:var(--bg);color:var(--ct);font-family:var(--ff);-webkit-appearance:none';
   return`<div class="panel" style="border-color:#633806;margin-top:10px">
     <div class="panel-header">
       <div><div class="panel-title">Rediger kamp</div><div class="panel-meta">${LAGNAVN[k.lag]} – ${k.mot}</div></div>
       <button class="btn-icon" onclick="lukkRedigering()">✕</button>
     </div>
-    <div class="input-row"><label>Lag</label><select id="re-lag" style="font-size:13px;padding:6px 9px">
-      <option value="0" ${k.lag===0?'selected':''}>K1</option>
-      <option value="1" ${k.lag===1?'selected':''}>K2</option>
-      <option value="2" ${k.lag===2?'selected':''}>K3</option>
-    </select></div>
-    <div class="input-row"><label>Motstander</label><input type="text" id="re-mot" value="${k.mot}" style="flex:1;font-size:14px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
-    <div class="input-row"><label>Dato</label><input type="date" id="re-dato" value="${k.dato}" style="font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
-    <div class="input-row"><label>H/B</label><select id="re-hb" style="font-size:13px;padding:6px 9px">
-      <option ${k.hb==='Hjemme'?'selected':''}>Hjemme</option>
-      <option ${k.hb==='Borte'?'selected':''}>Borte</option>
-    </select></div>
-    <div class="input-row"><label>Start</label><input type="time" id="re-start" value="${k.start||''}" style="font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
-    <div class="input-row"><label>Slutt</label><input type="time" id="re-slutt" value="${k.slutt||''}" style="font-size:13px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--bo2)"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div><div style="font-size:11px;color:var(--cs);margin-bottom:4px">Lag</div>
+        <select id="re-lag" style="${inp};width:100%"><option value="0" ${k.lag===0?'selected':''}>K1</option><option value="1" ${k.lag===1?'selected':''}>K2</option><option value="2" ${k.lag===2?'selected':''}>K3</option></select></div>
+      <div><div style="font-size:11px;color:var(--cs);margin-bottom:4px">H/B</div>
+        <select id="re-hb" style="${inp};width:100%"><option ${k.hb==='Hjemme'?'selected':''}>Hjemme</option><option ${k.hb==='Borte'?'selected':''}>Borte</option></select></div>
+      <div style="grid-column:1/-1"><div style="font-size:11px;color:var(--cs);margin-bottom:4px">Motstander</div>
+        <input type="text" id="re-mot" value="${k.mot}" style="${inp};width:100%"></div>
+      <div><div style="font-size:11px;color:var(--cs);margin-bottom:4px">Dato</div>
+        <input type="date" id="re-dato" value="${k.dato}" style="${inp};width:100%"></div>
+      <div><div style="font-size:11px;color:var(--cs);margin-bottom:4px">Start</div>
+        <input type="time" id="re-start" value="${k.start||''}" style="${inp};width:100%"></div>
+      <div><div style="font-size:11px;color:var(--cs);margin-bottom:4px">Slutt</div>
+        <input type="time" id="re-slutt" value="${k.slutt||''}" style="${inp};width:100%"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
       <button class="btn btn-sm" onclick="lukkRedigering()">Avbryt</button>
       <button class="btn btn-sm btn-primary" onclick="lagreRedigering(${kid})">Lagre</button>
     </div>
