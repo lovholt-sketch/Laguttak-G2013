@@ -232,7 +232,15 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getDatabase,ref,set,onValue}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 import{getAuth,signInAnonymously,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-const app=initializeApp({databaseURL:'https://laguttak-g2013-default-rtdb.europe-west1.firebasedatabase.app'});
+const app=initializeApp({
+  apiKey:'AIzaSyD_DjTZ23CpbML7dKqblaX6N0YiVIgS2Lo',
+  authDomain:'laguttak-g2013.firebaseapp.com',
+  databaseURL:'https://laguttak-g2013-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId:'laguttak-g2013',
+  storageBucket:'laguttak-g2013.firebasestorage.app',
+  messagingSenderId:'88360780000',
+  appId:'1:88360780000:web:35e93c5500e2b2e1f51085'
+});
 const db=getDatabase(app);
 const auth=getAuth(app);
 const LAGNAVN=['K1','K2','K3'],LAGCLS=['k1','k2','k3'],NB=['badge-purple','badge-teal','badge-brown'];
