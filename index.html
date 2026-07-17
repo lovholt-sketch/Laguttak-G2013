@@ -116,9 +116,52 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 .sum-celle{display:inline-flex;align-items:center;justify-content:center;width:26px;height:20px;border-radius:4px;font-size:11px;font-weight:700}
 .sum-celle.k1{background:#EEEDFE;color:#3C3489}.sum-celle.k2{background:#E1F5EE;color:#085041}.sum-celle.k3{background:#FAEEDA;color:#633806}.sum-celle.zero{color:var(--cs);font-weight:400}
 .celle-filter{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+
+.login-overlay{position:fixed;inset:0;background:#fafaf8;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:var(--bg);border:1px solid var(--bo);border-radius:var(--r2);padding:2rem;width:100%;max-width:340px;text-align:center}
+.login-logo{font-size:28px;margin-bottom:0.5rem}
+.login-title{font-size:18px;font-weight:600;margin-bottom:0.25rem}
+.login-sub{font-size:13px;color:var(--cs);margin-bottom:1.5rem}
+.login-input{width:100%;font-size:15px;padding:10px 14px;border-radius:var(--r);border:1.5px solid var(--bo2);background:var(--bg);color:var(--ct);font-family:var(--ff);margin-bottom:10px;text-align:center;letter-spacing:2px}
+.login-input:focus{outline:none;border-color:#378ADD}
+.login-btn{width:100%;padding:11px;border-radius:var(--r);border:none;background:var(--ct);color:var(--bg);font-size:15px;font-weight:600;cursor:pointer;font-family:var(--ff)}
+.login-btn:active{opacity:.8}
+.login-error{font-size:13px;color:#A32D2D;margin-top:8px;min-height:20px}
 </style>
 </head>
 <body>
+
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">⚽</div>
+    <div class="login-title">Korsvoll IL</div>
+    <div class="login-sub">Lagstyringsapp 2026/27</div>
+    <input class="login-input" type="password" id="login-pw" placeholder="Passord" onkeydown="if(event.key==='Enter')sjekkPassord()">
+    <button class="login-btn" onclick="sjekkPassord()">Logg inn</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+<script>
+(function(){
+  const PW='Korsvoll2013';
+  const KEY='kil_auth';
+  if(localStorage.getItem(KEY)===PW){
+    document.getElementById('login-overlay').style.display='none';
+  }
+  window.sjekkPassord=function(){
+    const v=document.getElementById('login-pw').value;
+    if(v===PW){
+      localStorage.setItem(KEY,PW);
+      document.getElementById('login-overlay').style.display='none';
+    } else {
+      document.getElementById('login-error').textContent='Feil passord, prøv igjen.';
+      document.getElementById('login-pw').value='';
+      document.getElementById('login-pw').focus();
+    }
+  };
+})();
+</script>
+
 <h1>⚽Korsvoll IL
   <span class="sync syncing" id="sync-ind">↻ Kobler til...</span>
 </h1>
@@ -188,8 +231,11 @@ input[type=time],input[type=date],select{font-size:13px;padding:7px 10px;border-
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getDatabase,ref,set,onValue}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import{getAuth,signInAnonymously}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 const app=initializeApp({databaseURL:'https://laguttak-g2013-default-rtdb.europe-west1.firebasedatabase.app'});
 const db=getDatabase(app);
+const auth=getAuth(app);
+signInAnonymously(auth).catch(e=>console.error('Auth error:',e));
 const LAGNAVN=['K1','K2','K3'],LAGCLS=['k1','k2','k3'],NB=['badge-purple','badge-teal','badge-brown'];
 const MND=['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
 const LAGBG=['#EEEDFE','#E1F5EE','#FAEEDA'],LAGTXT=['#3C3489','#085041','#633806'];
